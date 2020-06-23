@@ -5,7 +5,6 @@ from sklearn.model_selection import KFold
 import os
 
 
-np.random.seed(0)
 # inisialisasi data input
 dir = "data_train/LBP_R1/"
 kategori = ["ka", "ga", "nga", "pa", "ba", "ma", "ta", "da", "na", "ca", "ja", "nya", "ya", "a", "la", "ra", "sa", "wa",
@@ -17,44 +16,39 @@ for y in kategori:
     for img in os.listdir(path):
         im = Image.open(os.path.join(path, img))
         imgs = list(im.getdata())
-        imgs = np.asfarray(imgs)
-        imgs = (imgs / 255)
         features.append(imgs)
 
-x = np.array(features)
+x = np.array(features)/255
 jum_pixel = x.shape[1]  # jumlah pixel
-num_w1 = 256
-num_w2 = 128
-x.reshape((-1, jum_pixel)).astype('float32')
+num_w1 = 4
+num_w2 = 4
+x = x.reshape((-1, jum_pixel)).astype('float32')
+
 
 # inisialisasi data test
 dir_test = "data_test/LBP_R1/"
-kategori_test = ["ka", "ga", "nga", "pa", "ba", "ma", "ta", "da", "na", "ca", "ja", "nya", "ya", "a", "la", "ra", "sa", "wa",
-            "ha", "gha"]
 features_test = [];
 
-for h in kategori_test:
+for h in kategori:
     path = os.path.join(dir_test, h)
     for img in os.listdir(path):
         im = Image.open(os.path.join(path, img))
         imgs = list(im.getdata())
-        imgs = np.asfarray(imgs)
-        imgs = (imgs / 255)
         features_test.append(imgs)
 
-test = np.array(features)
+test = np.array(features_test)/255
 pixel_test = test.shape[1]  # jumlah pixel
-test.reshape((-1, pixel_test)).astype('float32')
+test = test.reshape((-1, pixel_test)).astype('float32')
+
 
 #Inisialisasi + normalisasi Label
 class_label = 20
+variasi = x.shape[0]/class_label
 train_label = np.arange(class_label)
-train_label = np.repeat(train_label, 90)
-y = np.asfarray(train_label)
+train_label = np.repeat(train_label, variasi)
 
 #One Hot Encoding Labels
-train_targets = np.array(y).astype(np.int)
-train_labels_one_hot = np.eye(np.max(train_targets) + 1)[train_targets]
+train_labels_one_hot = np.eye(np.max(train_label) + 1)[train_label]
 
 def sigmoid(x):
     return 1 / ( 1 + np.exp(-x))
@@ -77,7 +71,6 @@ def view_classify(img, ps):
     ax2.set_xlim(0, 1.1)
     plt.tight_layout()
 
-
 def view_model(model):
     folds = ('Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5',
              'Model 6', 'Model 7', 'Model 8', 'Model 9', 'Model 10')
@@ -94,18 +87,19 @@ def view_model(model):
 class NeuralNetwork:
     def __init__(self):
 
-        self.lr = 0.1
+        self.lr = 0.01
 
-        self.w1 = np.random.randn(jum_pixel, num_w1)
-        self.b1 = np.zeros((1, num_w1))
+        self.w1 = np.random.uniform(low=0.1, high=0.4, size=(jum_pixel, num_w1))
+        self.b1 = np.random.uniform(low=0.1, high=0.4, size=(1, num_w1))
 
-        self.w2 = np.random.randn(num_w1, num_w2)
-        self.b2 = np.zeros((1, num_w2))
+        self.w2 = np.random.uniform(low=0.1, high=0.4, size=(num_w1, num_w2))
+        self.b2 = np.random.uniform(low=0.1, high=0.4, size=(1, num_w2))
 
-        self.w3 = np.random.randn(num_w2, class_label)
-        self.b3 = np.zeros((1, class_label))
+        self.w3 = np.random.uniform(low=0.1, high=0.4, size=(num_w2, class_label))
+        self.b3 = np.random.uniform(low=0.1, high=0.4, size=(1, class_label))
 
     def feedforward(self):
+
         z1 = np.dot(self.x, self.w1) + self.b1
         self.a1 = sigmoid(z1)
 
@@ -127,14 +121,14 @@ class NeuralNetwork:
         error_h1 = np.dot(error_h2, self.w2.T) #error hidden 1
         Eh1_dsigmoid = error_h1 * dsigmoid(self.a1)  # EH1dsigmoid
 
-        self.w3 += self.lr * np.dot(self.a2.T, Eo_dsigmoid)
-        self.b3 += self.lr * np.sum(Eo_dsigmoid, axis=0, keepdims=True)
+        self.w3 -= self.lr * np.dot(self.a2.T, Eo_dsigmoid)
+        self.b3 -= self.lr * np.sum(Eo_dsigmoid, axis=0, keepdims=True)
 
-        self.w2 += self.lr * np.dot(self.a1.T, Eh2_dsigmoid)
-        self.b2 += self.lr * np.sum(Eh2_dsigmoid, axis=0, keepdims=True)
+        self.w2 -= self.lr * np.dot(self.a1.T, Eh2_dsigmoid)
+        self.b2 -= self.lr * np.sum(Eh2_dsigmoid, axis=0, keepdims=True)
 
-        self.w1 += self.lr * np.dot(self.x.T, Eh1_dsigmoid)
-        self.b1 += self.lr * np.sum(Eh1_dsigmoid, axis=0, keepdims=True)
+        self.w1 -= self.lr * np.dot(self.x.T, Eh1_dsigmoid)
+        self.b1 -= self.lr * np.sum(Eh1_dsigmoid, axis=0, keepdims=True)
 
     def train(self, x, y):
 
@@ -165,7 +159,7 @@ mean_validate = []
 kf = KFold(n_splits=10, random_state=None, shuffle=True)
 for train_index, test_index in kf.split(x):
     model = NeuralNetwork()
-    epochs = 150
+    epochs = 2
     x_train, x_test = x[train_index], x[test_index]
     y_train, y_test = y[train_index], y[test_index]
     y_train_one_hot, y_test_one_hot = train_labels_one_hot[train_index], train_labels_one_hot[test_index]
@@ -178,6 +172,7 @@ for train_index, test_index in kf.split(x):
         akurasi = (corrects / (corrects + wrongs)) * 100
         print("Validation Accruracy: ", akurasi , "%")
         total.append(akurasi)
+
     total = np.mean(total)
     mean_validate.append(np.mean(total))
     print("=============================")
@@ -193,6 +188,7 @@ view_model(mean_validate)
     prediction = model.predict(test[i])
     view_classify(test[i], prediction.reshape(1, -1))
 plt.show()"""
+
 
 """for epoch in range(epochs):
     print("epoch: ", epoch + 1)

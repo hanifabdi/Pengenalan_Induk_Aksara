@@ -1,16 +1,33 @@
 import numpy as np
 from sklearn.model_selection import KFold
 
-np.random.seed(0)
-x = np.array ([[0,0,255],  [255,0,0], [0,255,0],
-               [0,0,0],[255,255,255],[0,255,255],
-               [255,255,0], [0,255,0], [255,0,255],
-               [255,255,0]])
+
+x = np.array ([[0,0,255],  [255,0,0], [0,255,0], [0,0,0],
+               [255,255,255],[0,255,255], [255,255,0], [1,2,3],
+               [255,0,255], [1,1,0],"""[0,1,1], [1,0,0],
+               [0,0,1],[1,0,1],[3,2,1], [3,1,2],
+               [1,3,2],[2,3,1], [2,1,3], [2,2,2],
+               [2,3,4], [4,5,6], [7,8,9], [10,11,12],
+               [6,7,8], [8,9,10], [12,13,14], [13,14,15],
+               [14,15,16], [16,17,18], [18,19,20], [17,18,19],
+               [19,20,21], [20,21,22], [23,24,25], [26,27,28],
+               [22,23,24], [24,25,26], [27,28,29], [30,31,32],
+               [0, 0, 255], [255, 0, 0], [0, 255, 0], [0, 0, 0],
+               [255, 255, 255], [0, 255, 255], [255, 255, 0], [1, 2, 3],
+               [255, 0, 255], [1, 1, 0], [0, 1, 1], [1, 0, 0],
+               [0, 0, 1], [1, 0, 1], [3, 2, 1], [3, 1, 2],
+               [1, 3, 2], [2, 3, 1], [2, 1, 3], [2, 2, 2],
+               [2, 3, 4], [4, 5, 6], [7, 8, 9], [10, 11, 12],
+               [6, 7, 8], [8, 9, 10], [12, 13, 14], [13, 14, 15],
+               [14, 15, 16], [16, 17, 18], [18, 19, 20], [17, 18, 19],
+               [19, 20, 21], [20, 21, 22], [23, 24, 25], [26, 27, 28],
+               [22, 23, 24], [24, 25, 26], [27, 28, 29], [30, 31, 32]"""
+               ])
 
 #Inisialisasi + normalisasi Label
-class_label = 2
+class_label = 20
 train_label = np.arange(class_label)
-train_label = np.repeat(train_label, 5)
+train_label = np.repeat(train_label, 4)
 y = np.asfarray(train_label)
 
 #One Hot Encoding Labels
@@ -30,7 +47,7 @@ for epoch in range(epochs):
     corrects, wrongs = model.evaluate(x_train, y_train)
     print("accruracy train: ", corrects / (corrects + wrongs))
 """
-kf = KFold(n_splits=10, random_state=None, shuffle=False)
+kf = KFold(n_splits=10, random_state=None, shuffle=True)
 for train_index, test_index in kf.split(x):
     epochs = 2
     x_train, x_test = x[train_index], x[test_index]
@@ -40,19 +57,11 @@ for train_index, test_index in kf.split(x):
     for epoch in range(epochs):
         print("epoch: ", epoch + 1)
         for i in range(len(x_train)):
-            print(x_train[i])
+            print(y_train_one_hot[i])
 
         print("testing : ")
         print(x_test)
     print("============")
-
-
-
-
-
-
-
-
 
 
 """kf = KFold(n_splits=10, random_state=None, shuffle=True)
