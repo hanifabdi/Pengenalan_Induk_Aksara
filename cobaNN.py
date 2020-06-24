@@ -161,7 +161,7 @@ for train_index, test_index in kf.split(x):
     model = NeuralNetwork()
     epochs = 2
     x_train, x_test = x[train_index], x[test_index]
-    y_train, y_test = y[train_index], y[test_index]
+    y_train, y_test = train_label[train_index], train_label[test_index]
     y_train_one_hot, y_test_one_hot = train_labels_one_hot[train_index], train_labels_one_hot[test_index]
     for epoch in range(epochs):
         print("epoch: ", epoch + 1)
@@ -174,7 +174,7 @@ for train_index, test_index in kf.split(x):
         total.append(akurasi)
 
     total = np.mean(total)
-    mean_validate.append(np.mean(total))
+    """mean_validate.append(np.mean(total))
     print("=============================")
     print("Mean Validation Accuracy : ", total , "%")
     print("=============================")
@@ -183,7 +183,7 @@ for train_index, test_index in kf.split(x):
 
 print(mean_validate)
 view_model(mean_validate)
-
+"""
 """for i in range(len(test)):
     prediction = model.predict(test[i])
     view_classify(test[i], prediction.reshape(1, -1))

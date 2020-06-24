@@ -2,30 +2,27 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
+import pandas as pd
 import os
 
 
-cat = np.array([0,0,255,255,0,0])
-dog = np.array([255,255,0,0,255,255])
-bird = np.array([255,255,0,0,255,255])
-
-imgs = np.asfarray([cat,dog,bird])
-x = imgs/255
-
+x = np.array ([[0,0,255],  [255,0,0], [0,255,0], [0,0,0],
+               [255,255,255],[0,255,255], [255,255,0], [255,255,0],
+               [255,0,255], [255,255,0]])
+x = x/255
 jum_pixel = x.shape[1]  # jumlah pixel
 num_w1 = 4
 num_w2 = 4
-x.reshape((-1, jum_pixel)).astype('float32')
+x = x.reshape((-1, jum_pixel)).astype('float32')
 
 #Inisialisasi + normalisasi Label
-class_label = 3
+class_label = 2
+variasi = x.shape[0]/class_label
 train_label = np.arange(class_label)
-y = np.asfarray(train_label)
-
+train_label = np.repeat(train_label, variasi)
 
 #One Hot Encoding Labels
-train_targets = np.array(y).astype(np.int)
-train_labels_one_hot = np.eye(np.max(train_targets) + 1)[train_targets]
+train_labels_one_hot = np.eye(np.max(train_label) + 1)[train_label].astype('float32')
 
 def sigmoid(x):
     return 1 / ( 1 + np.exp(-x))
@@ -48,36 +45,42 @@ def view_classify(img, ps):
     ax2.set_xlim(0, 1.1)
     plt.tight_layout()
 
-
 def view_model(model):
+    fig, ax = plt.subplots(figsize=(6,9))
     folds = ('Model 1', 'Model 2', 'Model 3', 'Model 4', 'Model 5',
              'Model 6', 'Model 7', 'Model 8', 'Model 9', 'Model 10')
     y_pos = np.arange(len(folds))
     model = model
-
-    plt.bar(y_pos, model, align='center', alpha = 1)
+    plt.bar(y_pos, model, align='center', color="blue")
     plt.xticks(y_pos,folds)
+    for i, v in enumerate(model):
+        plt.text(y_pos[i] - 0.25, v + 1.5, str(v), color= "blue", fontweight = "bold")
     plt.ylabel('Rata-rata Akurasi (%)')
     plt.title('Akurasi validasi model Kfold')
     plt.show()
+    #plt.savefig('data_train/LBP_R1/akurasi_model.png')
+
+def saveWB(wM1,wM2,wM3,bM1,bM2,bM3,count):
+    df = pd.DataFrame({"A": [wM1, bM1], "B": [wM2, bM2], "C": [wM3, bM3]})
+    df.to_pickle("data_train/LBP_R1/model_" + str(count) + ".pkl")
 
 #Model NN
 class NeuralNetwork:
     def __init__(self):
 
-        self.lr = 0.1
+        self.lr = 0.01
 
-        self.w1 = np.random.rand(jum_pixel, num_w1)
-        self.b1 = np.zeros((1, num_w1))
+        self.w1 = np.random.uniform(low=0.1, high=0.4, size=(jum_pixel, num_w1)).astype('float32')
+        self.b1 = np.random.uniform(low=0.1, high=0.2, size=(1, num_w1)).astype("float32")
 
-        self.w2 = np.random.rand(num_w1, num_w2)
-        self.b2 = np.zeros((1, num_w2))
+        self.w2 = np.random.uniform(low=0.1, high=0.4, size=(num_w1, num_w2)).astype('float32')
+        self.b2 = np.random.uniform(low=0.1, high=0.2, size=(1, num_w2)).astype('float32')
 
-        self.w3 = np.random.rand(num_w2, class_label)
-        self.b3 = np.zeros((1, class_label))
-        print(self.w3)
+        self.w3 = np.random.uniform(low=0.1, high=0.4, size=(num_w2, class_label)).astype('float32')
+        self.b3 = np.random.uniform(low=0.1, high=0.2, size=(1, class_label)).astype('float32')
 
     def feedforward(self):
+
         z1 = np.dot(self.x, self.w1) + self.b1
         self.a1 = sigmoid(z1)
 
@@ -89,7 +92,6 @@ class NeuralNetwork:
 
     def backprop(self):
 
-        print(self.w3)
         output_errors = self.y - self.a3
         Eo_dsigmoid = output_errors * dsigmoid(self.a3)  # w3
 
@@ -107,8 +109,7 @@ class NeuralNetwork:
 
         self.w1 -= self.lr * np.dot(self.x.T, Eh1_dsigmoid)
         self.b1 -= self.lr * np.sum(Eh1_dsigmoid, axis=0, keepdims=True)
-        print(self.w3)
-        print("==========================")
+
     def train(self, x, y):
 
         self.x = np.array(x, ndmin=2)
@@ -133,33 +134,46 @@ class NeuralNetwork:
         return corrects, wrongs
 
 #Train
-model = NeuralNetwork()
-epochs = 2
-for epoch in range(epochs):
-    print("epoch: ", epoch + 1)
-    for i in range(len(x)):
-        model.train(x[i], train_labels_one_hot[i])
+akurat = []
+total = []
+mean_validate = []
+count = 0
+kf = KFold(n_splits=10, random_state=None, shuffle=True)
+for train_index, test_index in kf.split(x):
+    model = NeuralNetwork()
+    epochs = 2
+    x_train, x_eval = x[train_index], x[test_index]
+    y_train, y_eval = train_label[train_index], train_label[test_index]
+    y_train_one_hot, y_test_one_hot = train_labels_one_hot[train_index], train_labels_one_hot[test_index]
+    for epoch in range(epochs):
+        print("epoch: ", epoch + 1)
+        for i in range(len(x_train)):
+            model.train(x_train[i], y_train_one_hot[i])
+
+        corrects, wrongs = model.evaluate(x_eval, y_eval)
+        akurasi = round((corrects / (corrects + wrongs)), 3)*100
+        print("Validation Accruracy: ", akurasi, "%")
+        akurat.append(akurasi) #simpan nilai akurasi evaluasi tiap epoch
+
+    total = round((np.mean(akurat)), 3) #rata-rata akurasi tiap fold
+    mean_validate.append(total)
+    print("=============================")
+    print("Mean Validation Accuracy : ", total, "%")
+    print("=============================")
+    akurat = []
+    count = count + 1
+    saveWB(model.w1, model.w2, model.w3, model.b1, model.b2, model.b3, count)
+
+view_model(mean_validate)
+
+"""print("///////////")
+undf = pd.read_pickle("data_train/LBP_R1/model_9.pkl")
+print(undf.iloc[1],'\n')
+undf = pd.read_pickle("data_train/LBP_R1/model_10.pkl")
+print(undf.iloc[1],'\n')
+print("///////////")"""
 
 
-
-"""for i in range(len(test)):
-    prediction = model.predict(test[i])
-    view_classify(test[i], prediction.reshape(1, -1))
-plt.show()"""
-
-"""for epoch in range(epochs):
-    print("epoch: ", epoch + 1)
-    for i in range(len(x_train)):
-        model.train(x_train[i], train_labels_one_hot[i])
-
-    corrects, wrongs = model.evaluate(x_train, y_train)
-    print("accruracy train: ", corrects / (corrects + wrongs))
-
-n = [1,70,16,32,50]
-for i in n:
-    prediction = model.predict(x_train[i])
-    view_classify(x_train[i], prediction.reshape(1, -1))
-plt.show()"""
 
 """karakter = 'gha'
 folder = 'data_train/aksara/'+karakter+'/*.png'
