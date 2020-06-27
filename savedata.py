@@ -6,17 +6,26 @@ import pandas as pd
 import os
 
 
-x = np.array ([[0,0,255],  [255,0,0], [0,255,0], [0,0,0],
-               [255,255,255],[0,255,255], [255,255,0], [255,255,0],
-               [255,0,255], [255,255,0]])
-x = x/255
+dir = "data_train/LBP_R1/"
+kategori = ["ka", "ga", "nga", "pa", "ba", "ma", "ta", "da", "na", "ca", "ja", "nya", "ya", "a", "la", "ra", "sa", "wa",
+            "ha", "gha"]
+features = [];
+
+for y in kategori:
+    path = os.path.join(dir, y)
+    for img in os.listdir(path):
+        im = Image.open(os.path.join(path, img))
+        imgs = list(im.getdata())
+        features.append(imgs)
+
+x = np.array(features)/255
 jum_pixel = x.shape[1]  # jumlah pixel
-num_w1 = 4
-num_w2 = 4
+num_w1 = 30
+num_w2 = 30
 x = x.reshape((-1, jum_pixel)).astype('float32')
 
 #Inisialisasi + normalisasi Label
-class_label = 5
+class_label = 20
 variasi = x.shape[0]/class_label
 train_label = np.arange(class_label)
 train_label = np.repeat(train_label, variasi)
@@ -87,16 +96,16 @@ def saveWB(wM1,wM2,wM3,bM1,bM2,bM3,count):
 class NeuralNetwork:
     def __init__(self):
 
-        self.lr = 0.01
+        self.lr = 0.1
 
-        self.w1 = np.random.uniform(low=0.1, high=0.4, size=(jum_pixel, num_w1)).astype('float32')
-        self.b1 = np.random.uniform(low=0.1, high=0.2, size=(1, num_w1)).astype("float32")
+        self.w1 = np.random.rand(jum_pixel, num_w1).astype('float32')
+        self.b1 = np.random.rand(1, num_w1).astype("float32")
 
-        self.w2 = np.random.uniform(low=0.1, high=0.4, size=(num_w1, num_w2)).astype('float32')
-        self.b2 = np.random.uniform(low=0.1, high=0.2, size=(1, num_w2)).astype('float32')
+        self.w2 = np.random.rand(num_w1, num_w2).astype('float32')
+        self.b2 = np.random.rand(1, num_w2).astype('float32')
 
-        self.w3 = np.random.uniform(low=0.1, high=0.4, size=(num_w2, class_label)).astype('float32')
-        self.b3 = np.random.uniform(low=0.1, high=0.2, size=(1, class_label)).astype('float32')
+        self.w3 = np.random.rand(num_w2, class_label).astype('float32')
+        self.b3 = np.random.rand(1, class_label).astype('float32')
 
     def feedforward(self):
 
@@ -180,7 +189,7 @@ count = 0
 kf = KFold(n_splits=10, random_state=None, shuffle=True)
 for train_index, valid_index in kf.split(x):
     model = NeuralNetwork()
-    epochs = 2
+    epochs = 10
     x_train, x_valid = x[train_index], x[valid_index]
     y_train, y_valid = train_label[train_index], train_label[valid_index]
     y_train_one_hot, y_test_one_hot = train_labels_one_hot[train_index], train_labels_one_hot[valid_index]
@@ -190,17 +199,17 @@ for train_index, valid_index in kf.split(x):
             model.train(x_train[i], y_train_one_hot[i])
 
         corrects, wrongs = model.evaluate(x_train, y_train)
-        akurasi_train = round((corrects / (corrects + wrongs)), 3)*100
-        print("Training Accruracy: ", akurasi_train, "%")
+        akurasi_train = np.around((corrects / (corrects + wrongs)), decimals=3)
+        print("Training Accruracy: ", akurasi_train * 100, "%")
 
         corrects, wrongs = model.evaluate(x_valid, y_valid)
-        akurasi_val = round((corrects / (corrects + wrongs)), 3) * 100
-        print("Validation Accruracy: ", akurasi_val, "%")
+        akurasi_val = np.around((corrects / (corrects + wrongs)), decimals=3)
+        print("Validation Accruracy: ", akurasi_val * 100, "%")
 
         akurat_train.append(akurasi_train) #simpan nilai akurasi train tiap epoch
         akurat_val.append(akurasi_val)  # simpan nilai akurasi validasi tiap epoch
 
-    count = count + 1
+    """count = count + 1
     total_train = round((np.mean(akurat_train)), 3) #rata-rata akurasi_train tiap fold
     total_val = round((np.mean(akurat_val)), 3) #rata-rata akurasi_eval tiap fold
     mean_train.append(total_train)
@@ -215,7 +224,7 @@ for train_index, valid_index in kf.split(x):
 
 print(mean_train)
 print(mean_valid)
-view_accuracy(mean_train, mean_valid)
+view_accuracy(mean_train, mean_valid)"""
 
 """print("///////////")
 undf = pd.read_pickle("data_train/LBP_R1/model_9.pkl")
